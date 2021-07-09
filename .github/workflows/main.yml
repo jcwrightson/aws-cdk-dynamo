@@ -18,4 +18,5 @@ jobs:
           role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
       - run: npm ci
+      - run: cd functions && npm i && cd ..
       - run: npx cdk deploy --require-approval never
