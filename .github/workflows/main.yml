@@ -1,7 +1,11 @@
 name: Deploy to AWS
-on: [push]
+on:
+  push:
+    branches:
+      - main
+
 jobs:
-  Build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     env:
       AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
