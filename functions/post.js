@@ -10,7 +10,7 @@ exports.putItemHandler = async (event) => {
 
   const params = {
     TableName: tableName,
-     Item:{ id: uuid.v4(), ...body },
+    Item: { id: uuid.v4(), ...body },
   }
 
   await docClient.put(params).promise()
