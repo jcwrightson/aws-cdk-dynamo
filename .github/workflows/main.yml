@@ -21,6 +21,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
-      - run: npm ci
-      - run: cd functions && npm i && cd ..
-      - run: npx cdk deploy --require-approval never
+      - name: Clean install dependencies
+        run: npm ci
+      - name: Clean install lambda dependencies
+        working-directory: ./functions
+        run: npm ci
+      - name: CDK deploy
+        run: npx cdk deploy --require-approval never
