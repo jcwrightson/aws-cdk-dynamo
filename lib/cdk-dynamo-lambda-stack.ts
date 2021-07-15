@@ -10,63 +10,99 @@ export class CdkDynamoLambdaStack extends cdk.Stack {
     super(scope, id, props)
 
     // 1. Create a DynamoDB Table with a Partition Key
-    const table = new dynamodb.Table(this, 'test', {
+    const table = new dynamodb.Table(this, 'jcw-product', {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     })
 
     // 2. Create an API to interact with our DB
-    const api = new apigw.HttpApi(this, 'dynamo-api', {
+    const api = new apigw.HttpApi(this, 'jcw-product-api', {
       // Some basic cors config
       corsPreflight: {
         allowMethods: [
           apigw.CorsHttpMethod.GET,
           apigw.CorsHttpMethod.OPTIONS,
-          apigw.CorsHttpMethod.POST,
+          apigw.CorsHttpMethod.PUT,
         ],
         allowOrigins: ['*'], // ToDo: Change this to frontend URL later
       },
     })
 
-    // 3. Create GET lambda
-    const getAllLambda = new lambda.Function(this, 'getAllLambdaHandler', {
-      runtime: lambda.Runtime.NODEJS_14_X,
-      code: new lambda.AssetCode('functions'),
-      handler: 'get.getAllItemsHandler',
-      environment: {
-        TABLE_NAME: table.tableName, // we'll need this later
-      },
-    })
+    // 3. Get all products
+    const getProductsLambda = new lambda.Function(
+      this,
+      'jcw-get-products-handler',
+      {
+        runtime: lambda.Runtime.NODEJS_14_X,
+        code: new lambda.AssetCode('functions'),
+        handler: 'product.getAllItemsHandler',
+        environment: {
+          TABLE_NAME: table.tableName, // we'll need this later
+        },
+      }
+    )
 
-    // 3. Create POST lambda
-    const postItemLambda = new lambda.Function(this, 'putItemHandler', {
-      runtime: lambda.Runtime.NODEJS_14_X,
-      code: new lambda.AssetCode('functions'),
-      handler: 'post.putItemHandler',
-      environment: {
-        TABLE_NAME: table.tableName, // we'll need this later
-      },
-    })
+    // Get product by id
+    const getProductLambda = new lambda.Function(
+      this,
+      'jcw-get-product-handler',
+      {
+        runtime: lambda.Runtime.NODEJS_14_X,
+        code: new lambda.AssetCode('functions'),
+        handler: 'product.getByIdHandler',
+        environment: {
+          TABLE_NAME: table.tableName, // we'll need this later
+        },
+      }
+    )
 
-    // 4. Grant specific permissions to each lambda
-    table.grantReadData(getAllLambda)
-    table.grantWriteData(postItemLambda)
+    // Create product
+    const putProductLambda = new lambda.Function(
+      this,
+      'jcw-put-product-handler',
+      {
+        runtime: lambda.Runtime.NODEJS_14_X,
+        code: new lambda.AssetCode('functions'),
+        handler: 'product.putItemHandler',
+        environment: {
+          TABLE_NAME: table.tableName, // we'll need this later
+        },
+      }
+    )
 
-    // 5. Add routes
+    // 4. Add routes
     api.addRoutes({
-      path: '/',
+      path: '/product',
       methods: [apigw.HttpMethod.GET],
       integration: new integrations.LambdaProxyIntegration({
-        handler: getAllLambda,
+        handler: getProductsLambda,
       }),
     })
 
     api.addRoutes({
-      path: '/',
-      methods: [apigw.HttpMethod.POST],
+      path: '/product/{id}',
+      methods: [apigw.HttpMethod.GET],
       integration: new integrations.LambdaProxyIntegration({
-        handler: postItemLambda,
+        handler: getProductLambda,
       }),
     })
+
+    // ToDo: Should require authentication
+    api.addRoutes({
+      path: '/product',
+      methods: [apigw.HttpMethod.PUT],
+      integration: new integrations.LambdaProxyIntegration({
+        handler: putProductLambda,
+      }),
+    })
+
+    // 5. Grant specific permissions to each lambda
+    table.grantReadData(getProductsLambda)
+    table.grantReadData(getProductLambda)
+
+    // ToDo: Should require authentication
+    table.grantReadWriteData(putProductLambda)
 
     // 6. IAM: Add Permissions Boundary to all entities created by stack (optional)
     const boundary = iam.ManagedPolicy.fromManagedPolicyArn(
