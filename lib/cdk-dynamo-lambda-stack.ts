@@ -73,7 +73,7 @@ export class CdkDynamoLambdaStack extends cdk.Stack {
 
     // 4. Add routes
     api.addRoutes({
-      path: '/product',
+      path: '/api/product',
       methods: [apigw.HttpMethod.GET],
       integration: new integrations.LambdaProxyIntegration({
         handler: getProductsLambda,
@@ -81,7 +81,7 @@ export class CdkDynamoLambdaStack extends cdk.Stack {
     })
 
     api.addRoutes({
-      path: '/product/{id}',
+      path: '/api/product/{id}',
       methods: [apigw.HttpMethod.GET],
       integration: new integrations.LambdaProxyIntegration({
         handler: getProductLambda,
@@ -90,7 +90,7 @@ export class CdkDynamoLambdaStack extends cdk.Stack {
 
     // ToDo: Should require authentication
     api.addRoutes({
-      path: '/product',
+      path: '/api/product',
       methods: [apigw.HttpMethod.PUT],
       integration: new integrations.LambdaProxyIntegration({
         handler: putProductLambda,
